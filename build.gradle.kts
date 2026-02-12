@@ -1,5 +1,6 @@
 plugins {
     `java-library`
+    jacoco
 }
 
 group = "com.notification.lib"
@@ -21,9 +22,9 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok:1.18.34")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.34")
 
-    // Logging
+    // Logging - only the API for the library; consumers provide their own implementation
     implementation("org.slf4j:slf4j-api:2.0.16")
-    runtimeOnly("ch.qos.logback:logback-classic:1.5.12")
+    testRuntimeOnly("ch.qos.logback:logback-classic:1.5.12")
 
     // Jackson - JSON serialization
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.1")
@@ -41,19 +42,48 @@ tasks.test {
         events("passed", "skipped", "failed")
         showStandardStreams = true
     }
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.70".toBigDecimal()
+            }
+        }
+    }
 }
 
 tasks.jar {
     manifest {
         attributes(
             "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version,
-            "Main-Class" to "com.notification.lib.examples.NotificationExamples"
+            "Implementation-Version" to project.version
         )
     }
+}
 
-    // Create fat jar for examples execution
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) }) {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    }
+// Configuration for running examples (logback needed only here, not in the published library)
+val examples by configurations.creating {
+    extendsFrom(configurations.implementation.get())
+}
+
+dependencies {
+    examples("ch.qos.logback:logback-classic:1.5.12")
+}
+
+// Separate task for running examples (not included in library jar)
+tasks.register<JavaExec>("runExamples") {
+    description = "Runs the notification library examples"
+    mainClass.set("com.notification.lib.examples.NotificationExamples")
+    classpath = sourceSets["main"].output + examples
 }

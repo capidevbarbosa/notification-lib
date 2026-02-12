@@ -7,6 +7,7 @@ import com.notification.lib.exception.NotificationException;
 import com.notification.lib.exception.SendException;
 import com.notification.lib.exception.ValidationException;
 import com.notification.lib.retry.RetryExecutor;
+import com.notification.lib.retry.RetryExecutorFactory;
 import com.notification.lib.retry.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +37,15 @@ public class NotificationService {
 
     private final NotificationConfig config;
     private final NotificationEventPublisher eventPublisher;
+    private final RetryExecutorFactory retryExecutorFactory;
 
     public NotificationService(NotificationConfig config) {
         if (config == null) {
             throw new IllegalArgumentException("NotificationConfig must not be null");
         }
         this.config = config;
-        this.eventPublisher = new NotificationEventPublisher(config.getListeners());
+        this.eventPublisher = config.getOrCreateEventPublisher();
+        this.retryExecutorFactory = config.getRetryExecutorFactory();
     }
 
     /**
@@ -85,7 +88,7 @@ public class NotificationService {
             // Execute with retry if configured
             if (config.hasRetryPolicy()) {
                 RetryPolicy retryPolicy = config.getRetryPolicy();
-                RetryExecutor retryExecutor = new RetryExecutor(retryPolicy,
+                RetryExecutor retryExecutor = retryExecutorFactory.create(retryPolicy,
                         (attempt, maxRetries) -> eventPublisher.publish(
                                 NotificationEvent.retrying(messageId, channelType, attempt)));
 
