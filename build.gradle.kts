@@ -51,9 +51,33 @@ tasks.jacocoTestReport {
         xml.required.set(true)
         html.required.set(true)
     }
+    // Exclude simulated providers and examples from coverage reports
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it) {
+            exclude(
+                "**/examples/**",
+                "**/provider/SendGridProvider*",
+                "**/provider/MailgunProvider*",
+                "**/provider/TwilioSmsProvider*",
+                "**/provider/FirebasePushProvider*"
+            )
+        }
+    }))
 }
 
 tasks.jacocoTestCoverageVerification {
+    // Apply same exclusions as the report
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it) {
+            exclude(
+                "**/examples/**",
+                "**/provider/SendGridProvider*",
+                "**/provider/MailgunProvider*",
+                "**/provider/TwilioSmsProvider*",
+                "**/provider/FirebasePushProvider*"
+            )
+        }
+    }))
     violationRules {
         rule {
             limit {
