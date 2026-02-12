@@ -11,6 +11,16 @@ import java.util.function.Supplier;
  * Executes a notification send operation with retry logic.
  * Implements exponential backoff based on the configured {@link RetryPolicy}.
  *
+ * <p><b>Important - Blocking behavior:</b> This executor uses {@code Thread.sleep()}
+ * for backoff delays, making it <b>blocking</b>. When used within
+ * {@link com.notification.lib.async.AsyncNotificationService}, the retry delay
+ * will block a thread from the executor's thread pool, which may reduce throughput
+ * in high-concurrency scenarios.</p>
+ *
+ * <p>For non-blocking retry in async pipelines, use {@link AsyncRetryExecutor} or
+ * provide a custom {@link RetryExecutorFactory} via
+ * {@link com.notification.lib.config.NotificationConfig.Builder#withRetryExecutorFactory}.</p>
+ *
  * <p>Only retries on {@link SendException} (transport/provider failures).
  * Validation errors are NOT retried since they indicate bad input.</p>
  */

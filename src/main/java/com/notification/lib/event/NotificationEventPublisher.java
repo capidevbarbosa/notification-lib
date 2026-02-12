@@ -3,6 +3,7 @@ package com.notification.lib.event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -25,7 +26,9 @@ public class NotificationEventPublisher {
     }
 
     public NotificationEventPublisher(List<NotificationListener> initialListeners) {
-        this.listeners = new CopyOnWriteArrayList<>(initialListeners);
+        this.listeners = new CopyOnWriteArrayList<>(
+                initialListeners != null ? initialListeners : Collections.emptyList()
+        );
     }
 
     /**

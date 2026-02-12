@@ -40,7 +40,10 @@ public class AsyncNotificationService {
     private final Executor executor;
 
     /**
-     * Creates an AsyncNotificationService with a default virtual thread executor.
+     * Creates an AsyncNotificationService with a default cached thread pool executor.
+     *
+     * <p>Note: For Java 21+, consider passing {@code Executors.newVirtualThreadPerTaskExecutor()}
+     * as a custom executor for lightweight concurrency with virtual threads.</p>
      */
     public AsyncNotificationService(NotificationService notificationService) {
         this(notificationService, Executors.newCachedThreadPool());
@@ -111,8 +114,10 @@ public class AsyncNotificationService {
         List<CompletableFuture<NotificationResult>> futures = messages.stream()
                 .map(msg -> sendAsync(msg)
                         .exceptionally(ex -> {
-                            log.warn("Batch item failed: {}", ex.getMessage());
-                            return NotificationResult.failure("unknown", msg.getChannelType(), (Exception) ex.getCause());
+                            Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                            log.warn("Batch item failed: {}", cause.getMessage());
+                            return NotificationResult.failure("unknown", msg.getChannelType(),
+                                    cause.getClass().getSimpleName(), cause.getMessage());
                         }))
                 .collect(Collectors.toList());
 
